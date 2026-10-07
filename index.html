@@ -1,0 +1,2383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management System - Full Stack</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --warning: #f59e0b;
+            --gray: #f3f4f6;
+            --gray-border: #d1d5db;
+            --auth-surface: #ffffff;
+            --auth-muted: #64748b;
+            --auth-error-surface: #fee2e2;
+            --auth-error-text: #991b1b;
+            --auth-success-surface: #dcfce7;
+            --auth-success-text: #166534;
+            --auth-focus-ring: rgba(37, 99, 235, 0.2);
+            --auth-intent-surface: #eff6ff;
+            --auth-intent-text: #1e40af;
+            --auth-feedback-error-surface: #fee2e2;
+            --auth-feedback-error-text: #991b1b;
+            --auth-panel-width: 440px;
+            --access-divider: #f1f5f9;
+            --access-meta: #475569;
+            --auth-radius: 12px;
+            --auth-control-radius: 8px;
+            --auth-gap: 12px;
+        }
+        body { background: #f8fafc; padding: 20px; }
+        .report-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+        .camera-tools { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+        .image-preview { width:96px; height:96px; object-fit:cover; border:1px solid var(--gray-border); border-radius:10px; display:none; background:#f8fafc; }
+        .camera-modal .modal-content { max-width:760px; width:min(760px,95vw); }
+        .camera-stage { background:#0f172a; border-radius:12px; overflow:hidden; min-height:260px; display:flex; align-items:center; justify-content:center; }
+        .camera-stage video { width:100%; max-height:58vh; object-fit:contain; display:block; }
+        .camera-stage canvas { display:none; }
+        .camera-help { color:#64748b; font-size:13px; margin-top:8px; }
+
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { color: #0f172a; margin-bottom: 5px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        h1 small { font-size: 14px; font-weight: normal; color: #64748b; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin: 20px 0 25px 0;
+        }
+        .stat-card {
+            background: white;
+            padding: 18px 20px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 5px solid var(--primary);
+        }
+        .stat-card .label { font-size: 14px; color: #64748b; }
+        .stat-card .value { font-size: 28px; font-weight: bold; color: #0f172a; }
+        .stat-card.danger { border-left-color: var(--danger); }
+        .stat-card.success { border-left-color: var(--success); }
+        .stat-card.warning { border-left-color: var(--warning); }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            align-items: end;
+        }
+        .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .form-group label { font-size: 13px; font-weight: 600; color: #334155; }
+        .form-group input, .form-group select {
+            padding: 10px 12px;
+            border: 1px solid var(--gray-border);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+            color: white;
+            background: var(--primary);
+        }
+        .btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-success { background: var(--success); }
+        .btn-success:hover { background: #15803d; }
+        .btn-warning { background: var(--warning); }
+        .btn-warning:hover { background: #d97706; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            align-items: center;
+        }
+        .toolbar input {
+            padding: 10px 14px;
+            border: 1px solid var(--gray-border);
+            border-radius: 8px;
+            min-width: 250px;
+            font-size: 14px;
+        }
+        .filter-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .filter-group select { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--gray-border); }
+        .table-wrapper { overflow-x: auto; background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th .sort-arrow { opacity: 0.3; font-size: 10px; }
+        th { background: var(--gray); text-align: left; padding: 14px 16px; font-weight: 600; color: #1e293b; cursor: pointer; user-select: none; }
+        th:hover { background: #e5e7eb; }
+        td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+        tr:hover td { background: #f8fafc; }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-low { background: #fee2e2; color: #991b1b; }
+        .badge-ok { background: #dcfce7; color: #166534; }
+        .action-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+        .action-btns .btn { font-size: 11px; padding: 4px 10px; }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #0f172a;
+            color: white;
+            padding: 16px 28px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            font-weight: 500;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: 0.4s ease;
+            z-index: 999;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { border-left: 6px solid var(--success); }
+        .toast.error { border-left: 6px solid var(--danger); }
+        .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+        .empty-state h3 { color: #475569; margin-bottom: 8px; }
+        .loading { text-align: center; padding: 40px; color: #64748b; }
+        .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+        .status-dot.online { background: var(--success); }
+        .status-dot.offline { background: var(--danger); }
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Auth bar */
+        .auth-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-left: auto;
+            font-size: 14px;
+        }
+        .auth-bar .user-chip {
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        .auth-bar .role-badge {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-left: 4px;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.show { display: flex; }
+        .modal-content {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            width: 95%;
+            max-width: 500px;
+        }
+        .login-modal .modal-content { max-width: var(--auth-panel-width); }
+        .login-modal h2 { margin-bottom: 8px; }
+        .login-modal .subtitle { color: var(--auth-muted); font-size: 14px; margin-bottom: 20px; }
+        .login-error {
+            background: var(--auth-error-surface);
+            color: var(--auth-error-text);
+            padding: 10px 14px;
+            border-radius: var(--auth-control-radius);
+            font-size: 13px;
+            margin-bottom: 14px;
+            display: none;
+        }
+        .login-error.show { display: block; }
+
+        /* Keep write UI visible so it can prompt logged-out users to authenticate. */
+        .app-locked .write-only { opacity: 0.45; }
+        .login-prompt {
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            color: #9a3412;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            font-size: 14px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .login-prompt.show { display: flex; }
+        .auth-prompt-actions { display: flex; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
+        .auth-prompt-actions .btn { white-space: nowrap; }
+        .auth-prompt-copy { display: grid; gap: 3px; }
+        .auth-prompt-copy strong { color: var(--auth-intent-text); }
+        .auth-mode-switch {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            padding: 4px;
+            margin: 0 0 20px;
+            background: var(--gray);
+            border-radius: var(--auth-control-radius);
+        }
+        .auth-tab {
+            border: 0;
+            border-radius: 6px;
+            padding: 9px 12px;
+            background: transparent;
+            color: var(--auth-muted);
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .auth-tab:hover { color: var(--primary-dark); }
+        .auth-tab.active {
+            background: var(--auth-surface);
+            color: var(--primary);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14);
+        }
+        .auth-tab:focus-visible,
+        .modal-close:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px var(--auth-focus-ring);
+        }
+        .auth-panel[hidden] { display: none; }
+        .auth-form { display: flex; flex-direction: column; gap: var(--auth-gap); }
+        .auth-form .form-group { gap: 6px; }
+        .auth-form input { width: 100%; }
+        .auth-form .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 6px;
+        }
+        .auth-reason {
+            display: none;
+            margin: 0 0 16px;
+            padding: 10px 12px;
+            border: 1px solid #bfdbfe;
+            border-radius: var(--auth-control-radius);
+            background: var(--auth-intent-surface);
+            color: var(--auth-intent-text);
+            font-size: 13px;
+        }
+        .auth-reason.show { display: block; }
+        .auth-form-note { margin: 0; color: var(--auth-muted); font-size: 12px; line-height: 1.45; }
+        .inline-text-action {
+            border: 0;
+            padding: 0;
+            background: transparent;
+            color: var(--primary);
+            font: inherit;
+            font-size: 13px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .inline-text-action:hover { color: var(--primary-dark); text-decoration: underline; }
+        .inline-text-action:focus-visible {
+            outline: none;
+            border-radius: 4px;
+            box-shadow: 0 0 0 3px var(--auth-focus-ring);
+        }
+        .auth-feedback {
+            display: none;
+            margin: 0 0 14px;
+            padding: 10px 12px;
+            border-radius: var(--auth-control-radius);
+            font-size: 13px;
+            line-height: 1.45;
+        }
+        .auth-feedback.show { display: block; }
+        .auth-feedback.success { background: var(--auth-success-surface); color: var(--auth-success-text); }
+        .auth-feedback.error { background: var(--auth-feedback-error-surface); color: var(--auth-feedback-error-text); }
+        .field-message {
+            min-height: 0;
+            color: var(--auth-error-text);
+            font-size: 12px;
+            line-height: 1.35;
+        }
+        .field-message:empty { display: none; }
+        .auth-form input[aria-invalid="true"] {
+            border-color: var(--danger);
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.14);
+        }
+        .access-panel {
+            display: none;
+            background: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+        .access-panel.show { display: block; }
+        .access-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 16px;
+        }
+        .access-heading { color: #0f172a; font-size: 18px; font-weight: 600; }
+        .access-date { color: var(--auth-muted); font-size: 13px; margin-left: 8px; }
+        .access-summary {
+            color: var(--access-meta);
+            font-size: 13px;
+            font-variant-numeric: tabular-nums;
+            text-align: right;
+        }
+        .access-summary .summary-dot,
+        .access-result .summary-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .summary-dot.success { background: var(--success); }
+        .summary-dot.denied { background: var(--danger); }
+        .access-divider { border: 0; border-top: 1px solid var(--access-divider); margin: 14px 0 0; }
+        .access-table { box-shadow: none; border-radius: 0; margin-top: 0; }
+        .access-table table { font-size: 13px; }
+        .access-table th { background: transparent; color: var(--access-meta); font-size: 12px; padding: 10px 12px; border-bottom: 1px solid var(--access-divider); cursor: default; }
+        .access-table th:hover { background: transparent; }
+        .access-table td { padding: 10px 12px; border-bottom: 1px solid var(--access-divider); }
+        .access-table tbody tr:hover td { background: transparent; }
+        .access-time { width: 56px; color: var(--access-meta); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+        .access-account { color: #0f172a; font-weight: 600; }
+        .access-username { display: block; color: var(--auth-muted); font-size: 12px; font-weight: 400; margin-top: 2px; }
+        .access-role { width: 86px; }
+        .access-result { width: 116px; white-space: nowrap; }
+        .access-result.success { color: var(--success); }
+        .access-result.denied { color: var(--danger); }
+        .access-empty { padding: 18px 12px !important; color: var(--auth-muted); text-align: center; }
+        .access-loading { color: var(--auth-muted); padding: 14px 12px !important; }
+        .role-badge.access-role-badge { margin-left: 0; font-size: 11px; }
+        .modal-close {
+            float: right;
+            width: 32px;
+            height: 32px;
+            border: 0;
+            border-radius: 50%;
+            background: transparent;
+            color: var(--auth-muted);
+            font-size: 24px;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .modal-close:hover { background: var(--gray); color: #0f172a; }
+
+
+        /* Administration */
+        .main-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 16px 0 20px;
+            padding: 8px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .nav-btn {
+            border: 0;
+            background: transparent;
+            color: #475569;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .nav-btn:hover, .nav-btn.active { background: #eff6ff; color: var(--primary); }
+        .nav-btn.admin-nav { display: none; }
+        .page-panel { display: none; }
+        .page-panel.active { display: block; }
+        .section-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        .section-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+        .section-heading h2 { color:#0f172a; }
+        .section-heading p { color:#64748b; font-size:13px; margin-top:4px; }
+        .admin-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; }
+        .role-card { border:1px solid #e2e8f0; border-radius:10px; padding:16px; background:#f8fafc; }
+        .role-card h3 { text-transform:capitalize; margin-bottom:6px; color:#0f172a; }
+        .role-card p { color:#64748b; font-size:13px; line-height:1.5; margin-bottom:12px; }
+        .permission-list { display:grid; gap:7px; max-height:280px; overflow:auto; }
+        .permission-item { display:flex; gap:8px; align-items:center; font-size:13px; color:#334155; }
+        .permission-item input { accent-color:var(--primary); }
+        .permission-summary { font-size:12px; color:#64748b; margin-top:10px; }
+        .status-active { color:#166534; font-weight:600; }
+        .status-inactive { color:#991b1b; font-weight:600; }
+        .user-actions { display:flex; gap:6px; flex-wrap:wrap; }
+        .admin-only { display:none; }
+        .manager-view-note { display:none; margin-bottom:14px; padding:10px 12px; background:#eff6ff; color:#1e40af; border-radius:8px; font-size:13px; }
+        .modal-content.admin-modal { max-width: 620px; }
+        .role-select { min-width:130px; }
+
+        @media (max-width: 600px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .toolbar { flex-direction: column; align-items: stretch; }
+            .toolbar input { min-width: unset; }
+            .auth-bar { width: 100%; justify-content: flex-end; margin-top: 8px; }
+            .access-panel { padding: 14px 16px; }
+            .access-header { align-items: flex-start; flex-direction: column; gap: 6px; }
+            .access-summary { text-align: left; }
+            .access-table th, .access-table td { padding: 9px 6px; }
+            .access-table th:nth-child(3), .access-table td:nth-child(3) { display: none; }
+            .access-time { width: 52px; }
+            .access-result { width: auto; }
+            .access-account { font-size: 13px; }
+            .access-username { display: inline; margin-left: 4px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container" id="appRoot">
+
+    <h1>
+        📦 Inventory Manager <small>Full Stack v2.0</small>
+        <span id="serverStatus" style="font-size:14px;">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Connecting...</span>
+        </span>
+        <div class="auth-bar" id="authBar">
+            <button class="btn btn-sm" id="loginBtn">🔐 Login</button>
+        </div>
+    </h1>
+
+    <div class="login-prompt" id="loginPrompt">
+        <div class="auth-prompt-copy">
+            <strong>Account required for changes</strong>
+            <span>Sign in or create an account to manage inventory.</span>
+        </div>
+        <div class="auth-prompt-actions">
+            <button class="btn btn-sm" id="loginPromptBtn">Sign in</button>
+            <button class="btn btn-success btn-sm" id="registerPromptBtn">Create account</button>
+        </div>
+    </div>
+
+
+    <nav class="main-nav" id="mainNav" aria-label="Main navigation">
+        <button class="nav-btn active" type="button" data-page="dashboard">📊 Dashboard</button>
+        <button class="nav-btn" type="button" data-page="inventory">📦 Inventory</button>
+        <button class="nav-btn" id="salesReportsNavBtn" type="button" data-page="reports">📈 Sales Reports</button>
+        <button class="nav-btn admin-nav" id="usersNavBtn" type="button" data-page="users">👥 Users</button>
+        <button class="nav-btn admin-nav" id="rolesNavBtn" type="button" data-page="roles">🛡️ Roles &amp; Permissions</button>
+    </nav>
+
+    <!-- Dashboard -->
+    <section class="page-panel active" id="page-dashboard">
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="label">Total SKUs</div><div class="value" id="totalSkus">0</div></div>
+        <div class="stat-card success"><div class="label">Total Units in Stock</div><div class="value" id="totalUnits">0</div></div>
+        <div class="stat-card"><div class="label">Total Inventory Value (Ksh)</div><div class="value" id="totalValue">0.00</div></div>
+        <div class="stat-card danger"><div class="label">⚠️ Low Stock Items</div><div class="value" id="lowStockCount">0</div></div>
+    </div>
+
+    <!-- Admin-only authentication activity -->
+    <section class="access-panel" id="accessTodayPanel" aria-labelledby="accessTodayTitle">
+        <div class="access-header">
+            <div>
+                <span class="access-heading" id="accessTodayTitle">Access today</span>
+                <span class="access-date" id="accessTodayDate"></span>
+            </div>
+            <div class="access-summary" id="accessTodaySummary" aria-live="polite">Loading sign-in activity…</div>
+        </div>
+        <hr class="access-divider">
+        <div class="access-table">
+            <table>
+                <caption class="visually-hidden">Today’s authentication events</caption>
+                <thead>
+                    <tr><th scope="col">Time</th><th scope="col">Account</th><th scope="col">Role</th><th scope="col">Result</th></tr>
+                </thead>
+                <tbody id="accessTodayBody" aria-busy="true">
+                    <tr><td colspan="4" class="access-loading">Loading sign-in activity…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Today's Sales Report -->
+    <section class="access-panel sales-report-panel" id="dailySalesPanel" aria-labelledby="dailySalesTitle">
+        <div class="access-header">
+            <div>
+                <span class="access-heading" id="dailySalesTitle">Today's Sales Report</span>
+                <span class="access-date" id="dailySalesDate"></span>
+            </div>
+            <div class="filter-group">
+                <input type="date" id="dailySalesDatePicker" aria-label="Sales report date">
+                <button class="btn btn-sm" id="refreshDailySalesBtn" style="background:#64748b;">🔄 Refresh</button><button class="btn btn-sm" id="downloadDailySalesBtn">⬇️ Download CSV</button><button class="btn btn-sm" id="printDailySalesBtn" style="background:#475569;">🖨️ Print / Save PDF</button>
+            </div>
+        </div>
+        <div class="stats-grid report-stats" style="margin-top:14px;">
+            <div class="stat-card"><div class="label">Completed Sales</div><div class="value" id="dailySaleCount">0</div></div>
+            <div class="stat-card success"><div class="label">Units Sold</div><div class="value" id="dailyUnitsSold">0</div></div>
+            <div class="stat-card"><div class="label">Sales Value (Ksh)</div><div class="value" id="dailySalesAmount">0.00</div></div>
+        </div>
+        <hr class="access-divider">
+        <div class="table-wrapper">
+            <table>
+                <thead><tr><th>Product</th><th>SKU</th><th>Quantity Sold</th><th>Sales Amount (Ksh)</th></tr></thead>
+                <tbody id="dailySalesBody"><tr><td colspan="4" class="access-loading">Loading sales report…</td></tr></tbody>
+            </table>
+        </div>
+    </section>
+    </section>
+
+    <!-- Sales Reports -->
+    <section class="page-panel" id="page-reports">
+        <div class="section-heading"><div><h2>📈 Sales Reports</h2><p>Review completed sales by date, including the quantity sold for each product.</p></div></div>
+        <div class="access-panel">
+            <div class="access-header">
+                <div><span class="access-heading">Daily Sales</span><span class="access-date" id="reportDateLabel"></span></div>
+                <div class="filter-group"><input type="date" id="reportDatePicker" aria-label="Report date"><button class="btn btn-sm" id="loadSalesReportBtn">View Report</button><button class="btn btn-sm" id="downloadSalesReportBtn">⬇️ Download CSV</button><button class="btn btn-sm" id="printSalesReportBtn" style="background:#475569;">🖨️ Print / Save PDF</button></div>
+            </div>
+            <div class="stats-grid report-stats" style="margin-top:14px;">
+                <div class="stat-card"><div class="label">Completed Sales</div><div class="value" id="reportSaleCount">0</div></div>
+                <div class="stat-card success"><div class="label">Units Sold</div><div class="value" id="reportUnitsSold">0</div></div>
+                <div class="stat-card"><div class="label">Sales Value (Ksh)</div><div class="value" id="reportSalesAmount">0.00</div></div>
+            </div>
+            <div class="table-wrapper" style="margin-top:16px;"><table><thead><tr><th>Product</th><th>SKU</th><th>Quantity Sold</th><th>Sales Amount (Ksh)</th></tr></thead><tbody id="reportSalesBody"><tr><td colspan="4">Choose a date to view the report.</td></tr></tbody></table></div>
+        </div>
+    </section>
+
+    <!-- Inventory -->
+    <section class="page-panel" id="page-inventory">
+    <!-- Add New Product Form -->
+    <div class="form-grid write-only" id="addForm">
+        <div class="form-group"><label>SKU *</label><input type="text" id="sku" placeholder="e.g. PRD-001" required></div>
+        <div class="form-group"><label>Product Name *</label><input type="text" id="name" placeholder="e.g. Wireless Mouse"></div>
+        <div class="form-group"><label>Category</label><input type="text" id="category" placeholder="e.g. Electronics"></div>
+        <div class="form-group"><label>Price (Ksh) *</label><input type="number" id="price" placeholder="0.00" step="0.01"></div>
+        <div class="form-group"><label>Initial Stock *</label><input type="number" id="initialQty" placeholder="0" step="1"></div>
+        <div class="form-group">
+            <label>Unit *</label>
+            <select id="unit">
+                <option value="pcs">Pieces (pcs)</option>
+                <option value="kgs">Kilograms (kgs)</option>
+                <option value="liters">Liters (L)</option>
+            </select>
+        </div>
+        <div class="form-group"><label>Reorder Point *</label><input type="number" id="reorderPoint" placeholder="10" step="1"></div>
+        <div class="form-group"><label>Product Photo / Scan</label><div class="camera-tools"><button type="button" class="btn btn-sm" id="scanItemBtn">📷 Scan Barcode</button><button type="button" class="btn btn-sm" id="takePhotoBtn" style="background:#475569;">📸 Take Photo</button><input type="file" id="productPhotoInput" accept="image/*" capture="environment" hidden><img id="productImagePreview" class="image-preview" alt="Product preview"></div></div>
+        <div class="form-group"><label>&nbsp;</label><button class="btn" id="addBtn">➕ Add Product</button></div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <input type="text" id="searchInput" placeholder="🔍 Search by SKU, Name, or Category...">
+        <div class="filter-group">
+            <span style="font-size:14px;color:#475569;">Filter:</span>
+            <select id="filterStatus">
+                <option value="all">All Items</option>
+                <option value="low">Low Stock Only</option>
+                <option value="ok">In Stock</option>
+            </select>
+            <button class="btn btn-danger btn-sm write-only" id="clearAllBtn" style="background:#e11d48;">🗑️ Clear All Data</button>
+            <button class="btn btn-sm" id="refreshBtn" style="background:#64748b;">🔄 Refresh</button>
+        </div>
+    </div>
+
+    <!-- Inventory Table -->
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th data-sort="sku">SKU <span class="sort-arrow"></span></th>
+                    <th data-sort="name">Name <span class="sort-arrow"></span></th>
+                    <th data-sort="category">Category <span class="sort-arrow"></span></th>
+                    <th data-sort="price">Price (Ksh) <span class="sort-arrow"></span></th>
+                    <th data-sort="quantity">Quantity <span class="sort-arrow"></span></th>
+                    <th data-sort="reorderPoint">Reorder Pt. <span class="sort-arrow"></span></th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="inventoryBody">
+                <tr><td colspan="8"><div class="loading">⏳ Loading inventory...</div></td></tr>
+            </tbody>
+        </table>
+    </div>
+    </section>
+
+    <!-- Users -->
+    <section class="page-panel" id="page-users">
+        <div class="section-card">
+            <div class="section-heading">
+                <div><h2>👥 Users</h2><p>View accounts and, as an administrator, create, edit, change roles, or deactivate users.</p></div>
+                <button class="btn btn-success admin-only" id="addUserBtn" type="button">＋ Add User</button>
+            </div>
+            <div class="manager-view-note" id="managerUsersNote">Managers have read-only access to the user list.</div>
+            <div class="toolbar">
+                <input type="text" id="userSearchInput" placeholder="🔍 Search username, name, or email...">
+                <div class="filter-group"><select id="userRoleFilter"><option value="all">All roles</option><option value="admin">Admin</option><option value="manager">Manager</option><option value="staff">Staff</option></select><button class="btn btn-sm" id="refreshUsersBtn" style="background:#64748b;">🔄 Refresh</button></div>
+            </div>
+            <div class="table-wrapper">
+                <table><thead><tr><th>Username</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+                <tbody id="usersBody"><tr><td colspan="7"><div class="loading">Sign in as an administrator to manage users.</div></td></tr></tbody></table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Roles & Permissions -->
+    <section class="page-panel" id="page-roles">
+        <div class="section-card">
+            <div class="section-heading"><div><h2>🛡️ Roles &amp; Permissions</h2><p>System roles are enforced by the Flask API. Assign roles to users from the Users page.</p></div></div>
+            <div class="admin-grid" id="rolesGrid"><div class="loading">Loading role definitions…</div></div>
+        </div>
+    </section>
+
+</div>
+
+<!-- User Modal -->
+<div id="userModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="userModalTitle" aria-hidden="true">
+    <div class="modal-content admin-modal">
+        <button class="modal-close" id="closeUserModalBtn" type="button" aria-label="Close user dialog">&times;</button>
+        <h2 id="userModalTitle" style="margin-bottom:20px;">Add User</h2>
+        <input type="hidden" id="editUserId">
+        <div class="form-grid" style="padding:0;box-shadow:none;margin:0;">
+            <div class="form-group"><label for="userUsername">Username *</label><input type="text" id="userUsername" autocomplete="off" required></div>
+            <div class="form-group"><label for="userEmail">Email *</label><input type="email" id="userEmail" required></div>
+            <div class="form-group"><label for="userFullName">Full name</label><input type="text" id="userFullName"></div>
+            <div class="form-group"><label for="userRole">Role *</label><select id="userRole" class="role-select"><option value="staff">Staff</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div>
+            <div class="form-group"><label for="userPassword">Password <span id="userPasswordHint">*</span></label><input type="password" id="userPassword" autocomplete="new-password" minlength="8" placeholder="At least 8 characters"></div>
+            <div class="form-group" id="userActiveGroup"><label for="userActive">Status</label><select id="userActive"><option value="true">Active</option><option value="false">Inactive</option></select></div>
+        </div>
+        <p class="auth-form-note" id="userPasswordNote" style="margin-top:10px;">Passwords are stored as secure hashes and are never displayed.</p>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;"><button class="btn" id="cancelUserBtn" type="button" style="background:#64748b;">Cancel</button><button class="btn btn-success" id="saveUserBtn" type="button">Save User</button></div>
+    </div>
+</div>
+
+<!-- My Account modal -->
+<div id="profileModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle" aria-hidden="true">
+    <div class="modal-content admin-modal">
+        <button class="modal-close" id="closeProfileModalBtn" type="button" aria-label="Close account dialog">&times;</button>
+        <h2 id="profileModalTitle">👤 My Account</h2>
+        <p class="subtitle">Update your personal details or change your password.</p>
+        <div class="form-grid" style="padding:0;box-shadow:none;margin:0;">
+            <div class="form-group"><label for="profileUsername">Username</label><input id="profileUsername" type="text" disabled></div>
+            <div class="form-group"><label for="profileEmail">Email *</label><input id="profileEmail" type="email" required></div>
+            <div class="form-group"><label for="profileFullName">Full name</label><input id="profileFullName" type="text"></div>
+            <div class="form-group"><label for="profileRole">Role</label><input id="profileRole" type="text" disabled></div>
+            <div class="form-group"><label for="profileCurrentPassword">Current password</label><input id="profileCurrentPassword" type="password" autocomplete="current-password" placeholder="Required only to change password"></div>
+            <div class="form-group"><label for="profileNewPassword">New password</label><input id="profileNewPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Leave blank to keep current"></div>
+            <div class="form-group"><label for="profileConfirmPassword">Confirm new password</label><input id="profileConfirmPassword" type="password" autocomplete="new-password" minlength="8"></div>
+        </div>
+        <p class="auth-form-note">Passwords are never displayed or stored as plain text. Your current password is required before changing it.</p>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;"><button class="btn" id="cancelProfileBtn" type="button" style="background:#64748b;">Cancel</button><button class="btn btn-success" id="saveProfileBtn" type="button">Save Changes</button></div>
+    </div>
+</div>
+
+<!-- Account access modal -->
+<div id="loginModal" class="modal login-modal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle" aria-describedby="authModalSubtitle" aria-hidden="true">
+    <div class="modal-content">
+        <button class="modal-close" id="closeAuthBtn" type="button" aria-label="Close account access dialog">&times;</button>
+        <h2 id="authModalTitle">🔐 Sign in</h2>
+        <p class="subtitle" id="authModalSubtitle">Sign in to manage inventory.</p>
+        <div class="auth-reason" id="authReason" role="status" aria-live="polite"></div>
+        <div class="auth-mode-switch" role="tablist" aria-label="Account access mode">
+            <button class="auth-tab active" id="loginModeBtn" type="button" role="tab" aria-selected="true" aria-controls="loginPanel">Sign in</button>
+            <button class="auth-tab" id="registerModeBtn" type="button" role="tab" aria-selected="false" aria-controls="registerPanel">Create account</button>
+        </div>
+        <div class="login-error" id="authError" role="alert" aria-live="assertive"></div>
+        <div class="auth-feedback" id="authFeedback" role="alert" aria-live="assertive"></div>
+
+        <section class="auth-panel" id="loginPanel" role="tabpanel" aria-labelledby="loginModeBtn">
+            <form class="auth-form" id="loginForm" action="/api/auth/login" method="post" novalidate>
+                <div class="form-group">
+                    <label for="loginUsername">Username</label>
+                    <input type="text" id="loginUsername" name="username" placeholder="Enter your username" autocomplete="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" name="password" placeholder="••••••••" autocomplete="current-password" required>
+                    <button class="inline-text-action" id="forgotPasswordBtn" type="button">Forgot password?</button>
+                </div>
+                <div class="form-actions">
+                    <button class="btn" id="cancelAuthBtn" type="button" style="background:#64748b;">Cancel</button>
+                    <button class="btn btn-success" id="submitLoginBtn" type="submit">Sign in</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="auth-panel" id="registerPanel" role="tabpanel" aria-labelledby="registerModeBtn" hidden>
+            <form class="auth-form" id="registerForm" action="/api/auth/register" method="post" novalidate>
+                <div class="form-group">
+                    <label for="registerUsername">Username</label>
+                    <input type="text" id="registerUsername" name="username" autocomplete="username" minlength="3" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" name="email" autocomplete="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerFullName">Full name <span style="font-weight:normal;color:var(--auth-muted);">(optional)</span></label>
+                    <input type="text" id="registerFullName" name="fullName" autocomplete="name">
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" name="password" autocomplete="new-password" minlength="8" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPasswordConfirm">Confirm password</label>
+                    <input type="password" id="registerPasswordConfirm" name="confirmPassword" autocomplete="new-password" minlength="8" required>
+                </div>
+                <div class="form-actions">
+                    <button class="btn" type="button" data-auth-cancel style="background:#64748b;">Cancel</button>
+                    <button class="btn btn-success" id="submitRegisterBtn" type="submit">Create account</button>
+                </div>
+                <p class="auth-form-note">New accounts start with staff permissions. An administrator can update roles later.</p>
+            </form>
+        </section>
+
+        <section class="auth-panel" id="resetRequestPanel" role="tabpanel" aria-labelledby="authModalTitle" hidden>
+            <form class="auth-form" id="resetRequestForm" action="/api/auth/forgot-password" method="post" novalidate>
+                <div class="form-group">
+                    <label for="resetEmail">Email address</label>
+                    <input type="email" id="resetEmail" name="email" placeholder="name@example.com" autocomplete="email" required aria-describedby="resetEmailMessage">
+                    <span class="field-message" id="resetEmailMessage"></span>
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-success" id="submitResetRequestBtn" type="submit">Send reset instructions</button>
+                </div>
+                <button class="inline-text-action" type="button" data-reset-back>Back to sign in</button>
+            </form>
+        </section>
+
+        <section class="auth-panel" id="resetSentPanel" role="status" aria-live="polite" hidden>
+            <div class="auth-feedback success show" id="resetSentFeedback">
+                If an account matches that email, reset instructions are on the way.
+            </div>
+            <p class="auth-form-note" style="margin-bottom:16px;">Open the reset link in the email to choose a new password.</p>
+            <button class="inline-text-action" type="button" data-reset-back>Back to sign in</button>
+        </section>
+
+        <section class="auth-panel" id="resetPasswordPanel" role="tabpanel" aria-labelledby="authModalTitle" hidden>
+            <form class="auth-form" id="resetPasswordForm" action="/api/auth/reset-password" method="post" novalidate>
+                <p class="auth-form-note">Use at least 8 characters.</p>
+                <div class="form-group">
+                    <label for="resetPassword">New password</label>
+                    <input type="password" id="resetPassword" name="password" autocomplete="new-password" minlength="8" required aria-describedby="resetPasswordMessage">
+                    <span class="field-message" id="resetPasswordMessage"></span>
+                </div>
+                <div class="form-group">
+                    <label for="resetPasswordConfirm">Confirm new password</label>
+                    <input type="password" id="resetPasswordConfirm" name="confirmPassword" autocomplete="new-password" minlength="8" required aria-describedby="resetPasswordConfirmMessage">
+                    <span class="field-message" id="resetPasswordConfirmMessage"></span>
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-success" id="submitResetPasswordBtn" type="submit">Update password</button>
+                </div>
+                <button class="inline-text-action" type="button" data-reset-back>Back to sign in</button>
+            </form>
+        </section>
+
+        <section class="auth-panel" id="resetInvalidPanel" role="alert" hidden>
+            <div class="auth-feedback error show">This reset link is no longer valid. Request another reset.</div>
+            <div class="form-actions">
+                <button class="btn" id="requestAnotherResetBtn" type="button">Request another reset</button>
+            </div>
+            <button class="inline-text-action" type="button" data-reset-back>Back to sign in</button>
+        </section>
+    </div>
+</div>
+
+<!-- Edit Product Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <h2 style="margin-bottom: 20px;">Edit Product</h2>
+        <input type="hidden" id="editProductId">
+        <div class="form-grid" style="padding:0;box-shadow:none;margin:0;">
+            <div class="form-group"><label>SKU *</label><input type="text" id="editSku"></div>
+            <div class="form-group"><label>Product Name *</label><input type="text" id="editName"></div>
+            <div class="form-group"><label>Category</label><input type="text" id="editCategory"></div>
+            <div class="form-group"><label>Price (Ksh) *</label><input type="number" id="editPrice" step="0.01"></div>
+            <div class="form-group">
+                <label>Unit *</label>
+                <select id="editUnit">
+                    <option value="pcs">Pieces (pcs)</option>
+                    <option value="kgs">Kilograms (kgs)</option>
+                    <option value="liters">Liters (L)</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Reorder Point *</label><input type="number" id="editReorderPoint" step="1"></div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:25px;">
+            <button class="btn" id="cancelEditBtn" style="background:#64748b;">Cancel</button>
+            <button class="btn btn-success" id="saveChangesBtn">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast">Message</div>
+
+<script>
+    // ============================================================
+    // CONFIGURATION & AUTH STATE
+    // ============================================================
+    const API_BASE = '/api';
+    const TOKEN_KEY = 'inventory_access_token';
+    const REFRESH_KEY = 'inventory_refresh_token';
+    const USER_KEY = 'inventory_user';
+    const PERMS_KEY = 'inventory_permissions';
+
+    let currentSort = { by: 'created_at', order: 'desc' };
+    let currentUser = null;
+    let currentPermissions = [];  // list of permission strings from API
+    let usersCache = [];
+    let rolesCache = [];
+    let activePage = 'dashboard';
+    let editingUserId = null;
+    let authMode = 'login';
+    let resetToken = null;
+    let authReturnFocus = null;
+
+    const AUTH_INTENT_REASONS = {
+        create: 'Sign in or create an account to add products.',
+        edit: 'Sign in or create an account to edit products.',
+        stock: 'Sign in or create an account to adjust stock.',
+        delete: 'Sign in or create an account to delete products.',
+        clear: 'Sign in or create an account to clear inventory data.',
+    };
+
+    // Frontend mirror of backend ROLE_PERMISSIONS (fallback if /permissions not yet loaded)
+    const ROLE_PERMS_FALLBACK = {
+        admin: ['*'],
+        manager: [
+            'products:read','products:create','products:update','products:delete',
+            'stock:adjust','suppliers:read','suppliers:create','suppliers:update','suppliers:delete',
+            'customers:read','customers:create','customers:update','customers:delete',
+            'purchases:read','purchases:create','purchases:receive',
+            'sales:read','sales:create','payments:read','payments:create',
+            'audit:read','dashboard:read','users:read'
+        ],
+        staff: [
+            'products:read','products:create','products:update',
+            'stock:adjust','suppliers:read','customers:read','customers:create',
+            'sales:read','sales:create','payments:read','dashboard:read'
+        ],
+    };
+
+    function can(permission) {
+        if (!isLoggedIn()) return false;
+        const role = (currentUser && currentUser.role) || 'staff';
+        const perms = currentPermissions.length
+            ? currentPermissions
+            : (ROLE_PERMS_FALLBACK[role] || []);
+        if (perms.includes('*')) return true;
+        if (perms.includes(permission)) return true;
+        const resource = permission.split(':')[0];
+        if (perms.includes(resource + ':*')) return true;
+        return false;
+    }
+
+    function requirePermission(permission, intent) {
+        if (!isLoggedIn() || !currentUser) {
+            openLoginModal({ mode: 'login', intent });
+            return false;
+        }
+        if (!can(permission)) {
+            showToast('You do not have permission to perform this action.', 'error');
+            return false;
+        }
+        return true;
+    }
+
+    // ============================================================
+    // AUTH HELPERS
+    // ============================================================
+    function getToken() {
+        return localStorage.getItem(TOKEN_KEY);
+    }
+
+    function getRefreshToken() {
+        return localStorage.getItem(REFRESH_KEY);
+    }
+
+    function saveAuth(data) {
+        localStorage.setItem(TOKEN_KEY, data.accessToken);
+        if (data.refreshToken) localStorage.setItem(REFRESH_KEY, data.refreshToken);
+        if (data.user) {
+            localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+            currentUser = data.user;
+        }
+        updateAuthUI();
+        // Load permissions asynchronously
+        loadPermissions();
+    }
+
+    function clearAuth() {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(REFRESH_KEY);
+        localStorage.removeItem(USER_KEY);
+        localStorage.removeItem(PERMS_KEY);
+        currentUser = null;
+        currentPermissions = [];
+        updateAuthUI();
+    }
+
+    function loadStoredUser() {
+        try {
+            const raw = localStorage.getItem(USER_KEY);
+            currentUser = raw ? JSON.parse(raw) : null;
+            const p = localStorage.getItem(PERMS_KEY);
+            currentPermissions = p ? JSON.parse(p) : [];
+        } catch {
+            currentUser = null;
+            currentPermissions = [];
+        }
+        return currentUser;
+    }
+
+    async function loadPermissions() {
+        if (!getToken()) return;
+        try {
+            const result = await apiCall('/auth/permissions');
+            if (result.success) {
+                currentPermissions = result.data.permissions || [];
+                localStorage.setItem(PERMS_KEY, JSON.stringify(currentPermissions));
+                updateAuthUI();
+                // Re-render table actions with correct permissions
+                loadInventoryWithCurrentFilters();
+            }
+        } catch (e) {
+            console.warn('Could not load permissions', e);
+        }
+    }
+
+    function isLoggedIn() {
+        return !!getToken();
+    }
+
+    function updateAuthUI() {
+        const bar = document.getElementById('authBar');
+        const prompt = document.getElementById('loginPrompt');
+        const root = document.getElementById('appRoot');
+        const addForm = document.getElementById('addForm');
+        const clearBtn = document.getElementById('clearAllBtn');
+
+        if (isLoggedIn() && currentUser) {
+            bar.innerHTML = `
+                <span class="user-chip">
+                    👤 ${escapeHtml(currentUser.fullName || currentUser.username)}
+                    <span class="role-badge">${escapeHtml(currentUser.role || 'staff')}</span>
+                </span>
+                <button class="btn btn-sm" id="profileBtn" style="background:#475569;">👤 My Account</button>
+                <button class="btn btn-sm btn-danger" id="logoutBtn">Logout</button>
+            `;
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+            document.getElementById('profileBtn')?.addEventListener('click', openProfileModal);
+            prompt.classList.remove('show');
+            root.classList.remove('app-locked');
+
+            // Granular form visibility
+            if (can('products:create')) {
+                addForm.style.display = '';
+                addForm.classList.remove('write-only');
+            } else {
+                addForm.style.display = 'none';
+            }
+            // Clear-all is admin-only (products:delete + not staff)
+            if (can('products:delete') && currentUser.role === 'admin') {
+                clearBtn.style.display = '';
+            } else {
+                clearBtn.style.display = 'none';
+            }
+            loadAccessToday();
+            updateNavigation();
+        } else {
+            bar.innerHTML = `<button class="btn btn-sm" id="loginBtn">🔐 Login</button>`;
+            document.getElementById('loginBtn').addEventListener('click', openLoginModal);
+            prompt.classList.add('show');
+            root.classList.add('app-locked');
+            addForm.style.display = '';
+            clearBtn.style.display = '';
+            updateNavigation();
+        }
+    }
+
+    function clearAuthError() {
+        const error = document.getElementById('authError');
+        error.textContent = '';
+        error.hidden = true;
+        error.classList.remove('show');
+    }
+
+    function showAuthError(message) {
+        const error = document.getElementById('authError');
+        error.textContent = message;
+        error.hidden = false;
+        error.classList.add('show');
+    }
+
+    function clearAuthFeedback() {
+        const feedback = document.getElementById('authFeedback');
+        feedback.textContent = '';
+        feedback.className = 'auth-feedback';
+    }
+
+    function showAuthFeedback(message, type = 'error') {
+        const feedback = document.getElementById('authFeedback');
+        feedback.textContent = message;
+        feedback.className = `auth-feedback ${type} show`;
+    }
+
+    function setFieldMessage(inputId, messageId, message) {
+        const input = document.getElementById(inputId);
+        const fieldMessage = document.getElementById(messageId);
+        input.setAttribute('aria-invalid', message ? 'true' : 'false');
+        fieldMessage.textContent = message || '';
+    }
+
+    function clearResetFieldMessages() {
+        setFieldMessage('resetEmail', 'resetEmailMessage', '');
+        setFieldMessage('resetPassword', 'resetPasswordMessage', '');
+        setFieldMessage('resetPasswordConfirm', 'resetPasswordConfirmMessage', '');
+    }
+
+    function setAuthMode(mode, shouldFocus = true) {
+        const validModes = ['login', 'register', 'reset-request', 'reset-sent', 'reset-password', 'reset-invalid'];
+        authMode = validModes.includes(mode) ? mode : 'login';
+        const isRegister = authMode === 'register';
+        const isNormalMode = authMode === 'login' || isRegister;
+        const loginTab = document.getElementById('loginModeBtn');
+        const registerTab = document.getElementById('registerModeBtn');
+        const modeSwitch = document.querySelector('.auth-mode-switch');
+        const title = document.getElementById('authModalTitle');
+        const subtitle = document.getElementById('authModalSubtitle');
+        const panels = {
+            login: document.getElementById('loginPanel'),
+            register: document.getElementById('registerPanel'),
+            'reset-request': document.getElementById('resetRequestPanel'),
+            'reset-sent': document.getElementById('resetSentPanel'),
+            'reset-password': document.getElementById('resetPasswordPanel'),
+            'reset-invalid': document.getElementById('resetInvalidPanel'),
+        };
+        Object.entries(panels).forEach(([panelMode, panel]) => {
+            panel.hidden = panelMode !== authMode;
+        });
+
+        modeSwitch.hidden = !isNormalMode;
+        loginTab.classList.toggle('active', authMode === 'login');
+        registerTab.classList.toggle('active', isRegister);
+        loginTab.setAttribute('aria-selected', String(authMode === 'login'));
+        registerTab.setAttribute('aria-selected', String(isRegister));
+
+        const copy = {
+            login: ['🔐 Sign in', 'Sign in to manage inventory.'],
+            register: ['Create your staff account', 'Create an account to add, edit, and adjust inventory.'],
+            'reset-request': ['Reset your password', 'Enter the email linked to your account.'],
+            'reset-sent': ['Reset your password', 'Check your email for the next step.'],
+            'reset-password': ['Choose a new password', 'Use at least 8 characters.'],
+            'reset-invalid': ['Reset link unavailable', 'Request another reset link to continue.'],
+        }[authMode];
+        title.textContent = copy[0];
+        subtitle.textContent = copy[1];
+        clearAuthError();
+        clearAuthFeedback();
+        clearResetFieldMessages();
+
+        if (shouldFocus) {
+            setTimeout(() => {
+                const focusIds = {
+                    login: 'loginUsername',
+                    register: 'registerUsername',
+                    'reset-request': 'resetEmail',
+                    'reset-password': 'resetPassword',
+                    'reset-invalid': 'requestAnotherReset',
+                };
+                const target = document.getElementById(focusIds[authMode] || 'closeAuthBtn');
+                target.focus();
+            }, 0);
+        }
+    }
+
+    function openLoginModal(options = {}) {
+        const { mode = 'login', intent = null, trigger = document.activeElement, token = null } = options;
+        const modal = document.getElementById('loginModal');
+        const reason = document.getElementById('authReason');
+        authReturnFocus = trigger;
+        authReturnFocus = authReturnFocus && authReturnFocus !== document.body ? authReturnFocus : null;
+        resetToken = token;
+
+        document.getElementById('loginForm').reset();
+        document.getElementById('registerForm').reset();
+        document.getElementById('resetRequestForm').reset();
+        document.getElementById('resetPasswordForm').reset();
+        reason.textContent = intent ? (AUTH_INTENT_REASONS[intent] || '') : '';
+        reason.classList.toggle('show', Boolean(reason.textContent));
+        setAuthMode(mode, false);
+        modal.classList.add('show');
+        modal.setAttribute('aria-hidden', 'false');
+        setTimeout(() => {
+            const firstFieldId = {
+                login: 'loginUsername',
+                register: 'registerUsername',
+                'reset-request': 'resetEmail',
+                'reset-password': 'resetPassword',
+            }[authMode];
+            const firstField = document.getElementById(firstFieldId || 'closeAuthBtn');
+            firstField.focus();
+        }, 50);
+    }
+
+    function closeLoginModal() {
+        const modal = document.getElementById('loginModal');
+        modal.classList.remove('show');
+        modal.setAttribute('aria-hidden', 'true');
+        clearAuthError();
+        document.getElementById('loginForm').reset();
+        document.getElementById('registerForm').reset();
+        document.getElementById('resetRequestForm').reset();
+        document.getElementById('resetPasswordForm').reset();
+        document.getElementById('authReason').classList.remove('show');
+        clearAuthFeedback();
+        clearResetFieldMessages();
+        resetToken = null;
+        const focusTarget = authReturnFocus;
+        authReturnFocus = null;
+        if (focusTarget && document.contains(focusTarget) && !focusTarget.disabled) {
+            focusTarget.focus();
+        }
+    }
+
+    function finishAuthSubmission(button, label) {
+        button.disabled = false;
+        button.removeAttribute('aria-busy');
+        button.textContent = label;
+    }
+
+    async function submitLogin(event) {
+        event.preventDefault();
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        const btn = document.getElementById('submitLoginBtn');
+
+        clearAuthError();
+        if (!username || !password) {
+            showAuthError('Username and password are required.');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.setAttribute('aria-busy', 'true');
+        btn.textContent = 'Signing in...';
+
+        try {
+            const result = await apiCall('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ username, password }),
+                skipAuth: true,
+            });
+            if (result.success) {
+                saveAuth(result.data);
+                closeLoginModal();
+                showToast(`Welcome, ${result.data.user.fullName || result.data.user.username}!`, 'success');
+                await loadInventoryWithCurrentFilters();
+                updateNavigation();
+                await loadDashboardSummary();
+            }
+        } catch (error) {
+            showAuthError(error.message || 'Login failed');
+        } finally {
+            finishAuthSubmission(btn, 'Sign in');
+        }
+    }
+
+    async function submitRegistration(event) {
+        event.preventDefault();
+        const username = document.getElementById('registerUsername').value.trim();
+        const email = document.getElementById('registerEmail').value.trim().toLowerCase();
+        const fullName = document.getElementById('registerFullName').value.trim();
+        const password = document.getElementById('registerPassword').value;
+        const confirmation = document.getElementById('registerPasswordConfirm').value;
+        const btn = document.getElementById('submitRegisterBtn');
+
+        clearAuthError();
+        if (!username || !email || !password || !confirmation) {
+            showAuthError('Email, username, and password are required.');
+            return;
+        }
+        if (username.length < 3) {
+            showAuthError('Username must be at least 3 characters.');
+            return;
+        }
+        if (!document.getElementById('registerEmail').checkValidity()) {
+            showAuthError('Enter a valid email address.');
+            return;
+        }
+        if (password.length < 8) {
+            showAuthError('Password must be at least 8 characters.');
+            return;
+        }
+        if (password !== confirmation) {
+            showAuthError('Passwords do not match.');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.setAttribute('aria-busy', 'true');
+        btn.textContent = 'Creating account...';
+
+        try {
+            const result = await apiCall('/auth/register', {
+                method: 'POST',
+                body: JSON.stringify({ username, email, fullName, password }),
+                skipAuth: true,
+            });
+            if (result.success) {
+                saveAuth(result.data);
+                closeLoginModal();
+                showToast('Account created. You are now signed in.', 'success');
+                await loadInventoryWithCurrentFilters();
+            }
+        } catch (error) {
+            showAuthError(error.message || 'Account creation failed');
+        } finally {
+            finishAuthSubmission(btn, 'Create account');
+        }
+    }
+
+    async function submitForgotPassword(event) {
+        event.preventDefault();
+        const emailInput = document.getElementById('resetEmail');
+        const email = emailInput.value.trim().toLowerCase();
+        const btn = document.getElementById('submitResetRequestBtn');
+        clearAuthError();
+        clearAuthFeedback();
+        setFieldMessage('resetEmail', 'resetEmailMessage', '');
+
+        if (!email) {
+            setFieldMessage('resetEmail', 'resetEmailMessage', 'Enter your email address.');
+            emailInput.focus();
+            return;
+        }
+        if (!emailInput.checkValidity()) {
+            setFieldMessage('resetEmail', 'resetEmailMessage', 'Enter a valid email address.');
+            emailInput.focus();
+            return;
+        }
+
+        btn.disabled = true;
+        btn.setAttribute('aria-busy', 'true');
+        btn.textContent = 'Sending instructions…';
+        emailInput.disabled = true;
+        try {
+            await apiCall('/auth/forgot-password', {
+                method: 'POST',
+                body: JSON.stringify({ email }),
+                skipAuth: true,
+            });
+            setAuthMode('reset-sent');
+        } catch (error) {
+            showAuthFeedback('We couldn’t send reset instructions. Check your connection and try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.removeAttribute('aria-busy');
+            btn.textContent = 'Send reset instructions';
+            emailInput.disabled = false;
+        }
+    }
+
+    function validateResetPasswordFields() {
+        const password = document.getElementById('resetPassword').value;
+        const confirmation = document.getElementById('resetPasswordConfirm').value;
+        let valid = true;
+        setFieldMessage('resetPassword', 'resetPasswordMessage', '');
+        setFieldMessage('resetPasswordConfirm', 'resetPasswordConfirmMessage', '');
+
+        if (!password) {
+            setFieldMessage('resetPassword', 'resetPasswordMessage', 'Enter a new password.');
+            valid = false;
+        } else if (password.length < 8) {
+            setFieldMessage('resetPassword', 'resetPasswordMessage', 'Use at least 8 characters.');
+            valid = false;
+        }
+        if (!confirmation) {
+            setFieldMessage('resetPasswordConfirm', 'resetPasswordConfirmMessage', 'Confirm your new password.');
+            valid = false;
+        } else if (password !== confirmation) {
+            setFieldMessage('resetPasswordConfirm', 'resetPasswordConfirmMessage', 'Passwords do not match.');
+            valid = false;
+        }
+        return valid;
+    }
+
+    async function submitResetPassword(event) {
+        event.preventDefault();
+        const btn = document.getElementById('submitResetPasswordBtn');
+        clearAuthError();
+        clearAuthFeedback();
+        if (!resetToken) {
+            setAuthMode('reset-invalid');
+            return;
+        }
+        if (!validateResetPasswordFields()) return;
+
+        btn.disabled = true;
+        btn.setAttribute('aria-busy', 'true');
+        btn.textContent = 'Updating password…';
+        try {
+            await apiCall('/auth/reset-password', {
+                method: 'POST',
+                body: JSON.stringify({
+                    token: resetToken,
+                    password: document.getElementById('resetPassword').value,
+                    confirmPassword: document.getElementById('resetPasswordConfirm').value,
+                }),
+                skipAuth: true,
+            });
+            history.replaceState({}, document.title, window.location.pathname);
+            resetToken = null;
+            setAuthMode('login', false);
+            showAuthFeedback('Password updated. Sign in with your new password.', 'success');
+            setTimeout(() => document.getElementById('loginUsername').focus(), 0);
+        } catch (error) {
+            if (error.code === 'RESET_TOKEN_INVALID') {
+                setAuthMode('reset-invalid');
+            } else {
+                showAuthFeedback(error.message || 'We couldn’t update your password. Try again.', 'error');
+            }
+        } finally {
+            btn.disabled = false;
+            btn.removeAttribute('aria-busy');
+            btn.textContent = 'Update password';
+        }
+    }
+
+    function showForgotPassword() {
+        setAuthMode('reset-request');
+    }
+
+    function backToSignIn() {
+        resetToken = null;
+        setAuthMode('login');
+    }
+
+    function logout() {
+        clearAuth();
+        showToast('Logged out', 'success');
+        loadInventoryWithCurrentFilters();
+    }
+
+    async function tryRefreshToken() {
+        const refresh = getRefreshToken();
+        if (!refresh) return false;
+        try {
+            const response = await fetch(`${API_BASE}/auth/refresh`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${refresh}`,
+                },
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                clearAuth();
+                return false;
+            }
+            localStorage.setItem(TOKEN_KEY, data.data.accessToken);
+            return true;
+        } catch {
+            clearAuth();
+            return false;
+        }
+    }
+
+    // ============================================================
+    // UTILITIES
+    // ============================================================
+    function debounce(fn, delay) {
+        let timer;
+        return function (...args) {
+            clearTimeout(timer);
+            timer = setTimeout(() => fn.apply(this, args), delay);
+        };
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return text.toString().replace(/[&<>"']/g, m => map[m]);
+    }
+
+    // ============================================================
+    // API CLIENT (JWT-aware)
+    // ============================================================
+    async function apiCall(endpoint, options = {}) {
+        const url = `${API_BASE}${endpoint}`;
+        const skipAuth = options.skipAuth === true;
+        delete options.skipAuth;
+
+        const headers = {
+            'Content-Type': 'application/json',
+            ...(options.headers || {}),
+        };
+
+        if (!skipAuth && getToken()) {
+            headers['Authorization'] = `Bearer ${getToken()}`;
+        }
+
+        const mergedOptions = {
+            cache: 'no-store',
+            ...options,
+            headers,
+        };
+
+        try {
+            let response = await fetch(url, mergedOptions);
+            let data = await response.json().catch(() => ({}));
+
+            // If access token expired, try refresh once then retry
+            if (response.status === 401 && !skipAuth && getRefreshToken()) {
+                const refreshed = await tryRefreshToken();
+                if (refreshed) {
+                    headers['Authorization'] = `Bearer ${getToken()}`;
+                    response = await fetch(url, { ...mergedOptions, headers });
+                    data = await response.json().catch(() => ({}));
+                }
+            }
+
+            if (response.status === 401) {
+                clearAuth();
+                openLoginModal();
+                throw new Error(data.error || 'Please login to continue');
+            }
+
+            if (!response.ok) {
+                const apiError = new Error(data.error || `HTTP ${response.status}`);
+                apiError.code = data.code;
+                throw apiError;
+            }
+
+            return data;
+        } catch (error) {
+            console.error('API Error:', error);
+            throw error;
+        }
+    }
+
+    // ============================================================
+    // CHECK SERVER STATUS
+    // ============================================================
+    async function checkServerStatus() {
+        const dot = document.getElementById('statusDot');
+        const text = document.getElementById('statusText');
+        try {
+            const response = await fetch(`${API_BASE}/health`);
+            if (response.ok) {
+                dot.className = 'status-dot online';
+                text.textContent = 'Online';
+                return true;
+            }
+            throw new Error('Server error');
+        } catch {
+            dot.className = 'status-dot offline';
+            text.textContent = 'Offline - Click Refresh';
+            return false;
+        }
+    }
+
+    function formatAccessDate(value) {
+        if (!value) return '';
+        return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeZone: 'UTC' })
+            .format(new Date(`${value}T12:00:00Z`));
+    }
+
+    function formatAccessTime(value) {
+        if (!value) return '—';
+        return new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' })
+            .format(new Date(value));
+    }
+
+    function renderAccessToday(payload) {
+        const panel = document.getElementById('accessTodayPanel');
+        const date = document.getElementById('accessTodayDate');
+        const summary = document.getElementById('accessTodaySummary');
+        const body = document.getElementById('accessTodayBody');
+        const data = payload.data || {};
+        const totals = data.summary || { uniquePeople: 0, successful: 0, denied: 0 };
+        const events = Array.isArray(data.events) ? data.events : [];
+
+        panel.classList.add('show');
+        date.textContent = formatAccessDate(data.date);
+        summary.innerHTML = `<span class="summary-dot success" aria-hidden="true"></span>${totals.uniquePeople} people · ${totals.successful} successful sign-ins · <span class="summary-dot denied" aria-hidden="true"></span>${totals.denied} denied`;
+        body.setAttribute('aria-busy', 'false');
+        if (!events.length) {
+            body.innerHTML = '<tr><td colspan="4" class="access-empty">No sign-ins recorded today.</td></tr>';
+            return;
+        }
+
+        body.innerHTML = events.map(event => {
+            const successful = event.outcome === 'success';
+            const account = escapeHtml(event.fullName || event.username || 'Unknown account');
+            const username = event.fullName && event.username
+                ? `<span class="access-username">@${escapeHtml(event.username)}</span>`
+                : '';
+            const outcomeLabel = successful ? 'Signed in' : 'Sign-in denied';
+            return `<tr>
+                <td class="access-time">${escapeHtml(formatAccessTime(event.occurredAt))}</td>
+                <td class="access-account">${account}${username}</td>
+                <td class="access-role"><span class="role-badge access-role-badge">${escapeHtml(event.role || '—')}</span></td>
+                <td class="access-result ${successful ? 'success' : 'denied'}"><span class="summary-dot ${successful ? 'success' : 'denied'}" aria-hidden="true"></span>${outcomeLabel}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    async function loadAccessToday() {
+        const panel = document.getElementById('accessTodayPanel');
+        const body = document.getElementById('accessTodayBody');
+        if (!isLoggedIn() || !currentUser || currentUser.role !== 'admin') {
+            panel.classList.remove('show');
+            return;
+        }
+
+        panel.classList.add('show');
+        body.setAttribute('aria-busy', 'true');
+        body.innerHTML = '<tr><td colspan="4" class="access-loading">Loading sign-in activity…</td></tr>';
+        try {
+            const result = await apiCall('/admin/access-today');
+            if (result.success) {
+                renderAccessToday(result);
+                const totals = result.data.summary;
+                document.getElementById('accessTodaySummary').setAttribute(
+                    'aria-label', `Access activity updated. ${totals.successful} successful sign-ins, ${totals.denied} denied.`
+                );
+            }
+        } catch (error) {
+            body.setAttribute('aria-busy', 'false');
+            body.innerHTML = '<tr><td colspan="4" class="access-empty">Login activity could not be loaded. Refresh to try again.</td></tr>';
+        }
+    }
+
+    function openProfileModal() {
+        if (!currentUser) return;
+        document.getElementById('profileUsername').value = currentUser.username || '';
+        document.getElementById('profileEmail').value = currentUser.email || '';
+        document.getElementById('profileFullName').value = currentUser.fullName || '';
+        document.getElementById('profileRole').value = currentUser.role || 'staff';
+        document.getElementById('profileCurrentPassword').value = '';
+        document.getElementById('profileNewPassword').value = '';
+        document.getElementById('profileConfirmPassword').value = '';
+        document.getElementById('profileModal').classList.add('show');
+        document.getElementById('profileModal').setAttribute('aria-hidden','false');
+    }
+
+    function closeProfileModal() {
+        document.getElementById('profileModal').classList.remove('show');
+        document.getElementById('profileModal').setAttribute('aria-hidden','true');
+    }
+
+    async function saveProfile() {
+        const email = document.getElementById('profileEmail').value.trim().toLowerCase();
+        const fullName = document.getElementById('profileFullName').value.trim();
+        const currentPassword = document.getElementById('profileCurrentPassword').value;
+        const newPassword = document.getElementById('profileNewPassword').value;
+        const confirmPassword = document.getElementById('profileConfirmPassword').value;
+        if (!email) { showToast('Email is required.', 'error'); return; }
+        if (newPassword && newPassword.length < 8) { showToast('New password must be at least 8 characters.', 'error'); return; }
+        if (newPassword && newPassword !== confirmPassword) { showToast('New passwords do not match.', 'error'); return; }
+        if (newPassword && !currentPassword) { showToast('Enter your current password to change your password.', 'error'); return; }
+        try {
+            const result = await apiCall('/auth/profile', {method:'PUT', body:JSON.stringify({email, fullName, currentPassword, newPassword: newPassword || undefined})});
+            currentUser = result.data;
+            localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
+            closeProfileModal();
+            updateAuthUI();
+            showToast('Account details updated successfully.', 'success');
+        } catch (error) { showToast(error.message, 'error'); }
+    }
+
+    // ============================================================
+    // ADMINISTRATION / ROLE-BASED INTERFACE
+    // ============================================================
+    function isAdmin() { return !!currentUser && currentUser.role === 'admin'; }
+    function isManagerOrAdmin() { return !!currentUser && ['admin', 'manager'].includes(currentUser.role); }
+
+    function setPage(page) {
+        const allowed = ['dashboard', 'inventory', 'reports', 'users', 'roles'];
+        if (!allowed.includes(page)) page = 'dashboard';
+        if (page === 'users' && !isManagerOrAdmin()) page = 'dashboard';
+        if (page === 'roles' && !isAdmin()) page = 'dashboard';
+        if (page === 'reports' && !isManagerOrAdmin()) page = 'dashboard';
+        activePage = page;
+        document.querySelectorAll('.page-panel').forEach(panel => panel.classList.toggle('active', panel.id === `page-${page}`));
+        document.querySelectorAll('.nav-btn[data-page]').forEach(btn => btn.classList.toggle('active', btn.dataset.page === page));
+        if (page === 'users') loadUsers();
+        if (page === 'roles') loadRoles();
+        if (page === 'reports') { const picker = document.getElementById('reportDatePicker'); if (picker && !picker.value) picker.value = todayIso(); loadDailySalesReport(picker?.value || todayIso(), 'report'); }
+        if (page === 'dashboard') loadDashboardSummary();
+    }
+
+    function updateNavigation() {
+        const dailyPanel = document.getElementById('dailySalesPanel');
+        if (dailyPanel) dailyPanel.style.display = isManagerOrAdmin() ? '' : 'none';
+        const userNav = document.getElementById('usersNavBtn');
+        const rolesNav = document.getElementById('rolesNavBtn');
+        const reportsNav = document.getElementById('salesReportsNavBtn');
+        userNav.style.display = isManagerOrAdmin() ? '' : 'none';
+        rolesNav.style.display = isAdmin() ? '' : 'none';
+        reportsNav.style.display = isManagerOrAdmin() ? '' : 'none';
+        document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin() ? '' : 'none');
+        document.getElementById('managerUsersNote').style.display = (isManagerOrAdmin() && !isAdmin()) ? 'block' : 'none';
+        if (!isManagerOrAdmin() && activePage === 'users') setPage('dashboard');
+        if (!isAdmin() && activePage === 'roles') setPage('dashboard');
+        if (!isManagerOrAdmin() && activePage === 'reports') setPage('dashboard');
+    }
+
+    function todayIso() {
+        const now = new Date();
+        const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+        return local.toISOString().slice(0, 10);
+    }
+
+    let lastDashboardReport = null;
+    let lastPageReport = null;
+
+    function renderDailySales(data, bodyId, countId, unitsId, amountId) {
+        document.getElementById(countId).textContent = data.saleCount ?? 0;
+        document.getElementById(unitsId).textContent = data.totalQuantity ?? 0;
+        document.getElementById(amountId).textContent = Number(data.totalAmount || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+        const body = document.getElementById(bodyId);
+        if (!data.products?.length) {
+            body.innerHTML = '<tr><td colspan="4" class="access-empty">No completed sales were recorded for this date.</td></tr>';
+            return;
+        }
+        body.innerHTML = data.products.map(p => `<tr><td><strong>${escapeHtml(p.productName || 'Unknown')}</strong></td><td>${escapeHtml(p.sku || '—')}</td><td>${p.quantity}</td><td>${Number(p.salesAmount || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>`).join('');
+    }
+
+    async function loadDailySalesReport(dateValue, target='dashboard') {
+        const date = dateValue || todayIso();
+        try {
+            const result = await apiCall(`/reports/daily-sales?date=${encodeURIComponent(date)}`);
+            if (!result.success) return;
+            if (target === 'dashboard') {
+                lastDashboardReport = result.data;
+                renderDailySales(result.data, 'dailySalesBody', 'dailySaleCount', 'dailyUnitsSold', 'dailySalesAmount');
+                document.getElementById('dailySalesDate').textContent = ` • ${formatDate(result.data.date)}`;
+            } else {
+                lastPageReport = result.data;
+                renderDailySales(result.data, 'reportSalesBody', 'reportSaleCount', 'reportUnitsSold', 'reportSalesAmount');
+                document.getElementById('reportDateLabel').textContent = ` • ${formatDate(result.data.date)}`;
+            }
+        } catch (error) {
+            const bodyId = target === 'dashboard' ? 'dailySalesBody' : 'reportSalesBody';
+            document.getElementById(bodyId).innerHTML = `<tr><td colspan="4" class="access-empty">${escapeHtml(error.message)}</td></tr>`;
+        }
+    }
+
+    async function downloadSalesCsv(dateValue) {
+        if (!isManagerOrAdmin()) { showToast('Only managers and administrators can download sales reports.', 'error'); return; }
+        const date = dateValue || todayIso();
+        try {
+            const response = await fetch(`${API_BASE}/reports/daily-sales.csv?date=${encodeURIComponent(date)}`, { headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY) || ''}` } });
+            if (!response.ok) { const text = await response.text(); throw new Error(text || 'Download failed'); }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `sales-report-${date}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+            showToast('Sales report downloaded.', 'success');
+        } catch (error) { showToast(`Could not download report: ${error.message}`, 'error'); }
+    }
+
+    function printSalesReport(report, title='Daily Sales Report') {
+        if (!report) { showToast('Load a report first.', 'error'); return; }
+        const rows = (report.products || []).map(p => `<tr><td>${escapeHtml(p.productName || 'Unknown')}</td><td>${escapeHtml(p.sku || '—')}</td><td>${p.quantity}</td><td>${Number(p.salesAmount || 0).toFixed(2)}</td></tr>`).join('');
+        const win = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700');
+        if (!win) { showToast('Please allow pop-ups to print the report.', 'error'); return; }
+        win.document.write(`<!doctype html><html><head><title>${escapeHtml(title)} - ${escapeHtml(report.date)}</title><style>body{font-family:Arial,sans-serif;padding:28px;color:#111827}h1{margin:0 0 6px}p{color:#475569}table{width:100%;border-collapse:collapse;margin-top:22px}th,td{border:1px solid #cbd5e1;padding:9px;text-align:left}th{background:#f1f5f9}.metrics{display:flex;gap:28px;margin:18px 0}.metric strong{display:block;font-size:20px}</style></head><body><h1>${escapeHtml(title)}</h1><p>Date: ${escapeHtml(formatDate(report.date))}</p><div class="metrics"><div class="metric">Completed Sales<strong>${report.saleCount || 0}</strong></div><div class="metric">Units Sold<strong>${report.totalQuantity || 0}</strong></div><div class="metric">Sales Value (Ksh)<strong>${Number(report.totalAmount || 0).toFixed(2)}</strong></div></div><table><thead><tr><th>Product</th><th>SKU</th><th>Quantity Sold</th><th>Sales Amount (Ksh)</th></tr></thead><tbody>${rows || '<tr><td colspan="4">No completed sales.</td></tr>'}</tbody></table><script>window.onload=()=>window.print()<\/script></body></html>`);
+        win.document.close();
+    }
+
+    let cameraStream = null;
+    let barcodeDetector = null;
+    let barcodeTimer = null;
+    function openCameraModal() {
+        document.getElementById('cameraModal').classList.add('show');
+        startCamera();
+    }
+    function closeCameraModal() {
+        stopCamera();
+        document.getElementById('cameraModal').classList.remove('show');
+    }
+    async function startCamera() {
+        const video = document.getElementById('cameraVideo');
+        const help = document.getElementById('cameraHelp');
+        try {
+            if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera access is not supported by this browser.');
+            cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+            video.srcObject = cameraStream;
+            if ('BarcodeDetector' in window) {
+                try { barcodeDetector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code'] }); } catch { barcodeDetector = null; }
+            }
+            if (barcodeDetector) {
+                help.textContent = 'Point the camera at a barcode. The SKU field will be filled automatically when a barcode is detected.';
+                scanBarcodeLoop();
+            } else {
+                help.textContent = 'Live barcode scanning is not available in this browser. Capture a photo or use the file picker instead.';
+            }
+        } catch (error) { help.textContent = error.message || 'Unable to access the camera.'; }
+    }
+    function stopCamera() {
+        if (barcodeTimer) { clearTimeout(barcodeTimer); barcodeTimer = null; }
+        if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+        const video = document.getElementById('cameraVideo'); if (video) video.srcObject = null;
+    }
+    async function scanBarcodeLoop() {
+        if (!cameraStream || !barcodeDetector) return;
+        const video = document.getElementById('cameraVideo');
+        if (video.readyState >= 2) {
+            try {
+                const codes = await barcodeDetector.detect(video);
+                if (codes.length) {
+                    const value = codes[0].rawValue?.trim();
+                    if (value) { document.getElementById('sku').value = value; showToast(`Barcode scanned: ${value}`, 'success'); closeCameraModal(); return; }
+                }
+            } catch {}
+        }
+        barcodeTimer = setTimeout(scanBarcodeLoop, 500);
+    }
+    function captureCameraPhoto() {
+        const video = document.getElementById('cameraVideo'), canvas = document.getElementById('cameraCanvas');
+        if (!video.videoWidth) { showToast('Camera is not ready yet.', 'error'); return; }
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(blob => { if (!blob) return; const file = new File([blob], 'product-photo.jpg', {type:'image/jpeg'}); setProductPhoto(file); closeCameraModal(); }, 'image/jpeg', 0.82);
+    }
+    function setProductPhoto(file) {
+        if (!file?.type?.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = () => { document.getElementById('productImagePreview').src = reader.result; document.getElementById('productImagePreview').style.display = 'block'; window.pendingProductImageData = reader.result; };
+        reader.readAsDataURL(file);
+    }
+    function clearProductPhoto() { window.pendingProductImageData = null; const img=document.getElementById('productImagePreview'); img.src=''; img.style.display='none'; }
+
+    async function loadDashboardSummary() {
+        if (!isLoggedIn() || !currentUser || !can('dashboard:read')) return;
+        try {
+            const result = await apiCall('/dashboard');
+            if (!result.success) return;
+            const d = result.data;
+            document.getElementById('totalSkus').textContent = d.totalProducts ?? 0;
+            document.getElementById('lowStockCount').textContent = d.lowStockCount ?? 0;
+            if (isManagerOrAdmin()) await loadDailySalesReport(document.getElementById('dailySalesDatePicker')?.value || todayIso(), 'dashboard');
+        } catch (e) { console.warn('Dashboard summary unavailable', e); }
+    }
+
+    function filteredUsers() {
+        const q = document.getElementById('userSearchInput').value.trim().toLowerCase();
+        const role = document.getElementById('userRoleFilter').value;
+        return usersCache.filter(u => {
+            const text = `${u.username} ${u.fullName || ''} ${u.email}`.toLowerCase();
+            return (!q || text.includes(q)) && (role === 'all' || u.role === role);
+        });
+    }
+
+    function renderUsers() {
+        const body = document.getElementById('usersBody');
+        const users = filteredUsers();
+        if (!users.length) {
+            body.innerHTML = '<tr><td colspan="7"><div class="empty-state"><h3>👥 No users found</h3><p>Try a different search or role filter.</p></div></td></tr>';
+            return;
+        }
+        body.innerHTML = users.map(u => {
+            const own = currentUser && u.id === currentUser.id;
+            const actions = isAdmin()
+                ? `<div class="user-actions"><button class="btn btn-sm" onclick="openUserEditor('${u.id}')">✏️ Edit</button>${own ? '' : `<button class="btn btn-danger btn-sm" onclick="deactivateUser('${u.id}')">${u.isActive ? 'Deactivate' : 'Activate'}</button>`}</div>`
+                : '<span style="color:#94a3b8;font-size:12px;">View only</span>';
+            return `<tr>
+                <td><strong>${escapeHtml(u.username)}</strong></td>
+                <td>${escapeHtml(u.fullName || '—')}</td>
+                <td>${escapeHtml(u.email)}</td>
+                <td><span class="role-badge access-role-badge">${escapeHtml(u.role)}</span></td>
+                <td class="${u.isActive ? 'status-active' : 'status-inactive'}">${u.isActive ? '● Active' : '● Inactive'}</td>
+                <td>${escapeHtml(formatDate(u.createdAt))}</td>
+                <td>${actions}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    function formatDate(value) {
+        if (!value) return '—';
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'});
+    }
+
+    async function loadUsers() {
+        const body = document.getElementById('usersBody');
+        if (!isManagerOrAdmin()) return;
+        body.innerHTML = '<tr><td colspan="7"><div class="loading">⏳ Loading users…</div></td></tr>';
+        try {
+            const result = await apiCall('/users');
+            usersCache = result.data || [];
+            renderUsers();
+        } catch (error) {
+            body.innerHTML = `<tr><td colspan="7"><div class="empty-state"><h3>❌ Could not load users</h3><p>${escapeHtml(error.message)}</p></div></td></tr>`;
+        }
+    }
+
+    async function loadRoles() {
+        const grid = document.getElementById('rolesGrid');
+        if (!isAdmin()) return;
+        grid.innerHTML = '<div class="loading">⏳ Loading role definitions…</div>';
+        try {
+            const result = await apiCall('/roles');
+            rolesCache = result.data || [];
+            grid.innerHTML = rolesCache.map(role => {
+                const perms = role.isFullAccess ? ['Full system access'] : role.permissions.map((p, i) => `<label class="permission-item"><input type="checkbox" disabled checked> ${escapeHtml(role.permissionLabels[i] || p)}</label>`).join('');
+                const count = role.isFullAccess ? 'All permissions' : `${role.permissions.length} permissions`;
+                return `<article class="role-card"><h3>${escapeHtml(role.name)}</h3><p>${escapeHtml(role.description)}</p><div class="permission-list">${perms}</div><div class="permission-summary">${count}</div></article>`;
+            }).join('');
+        } catch (error) {
+            grid.innerHTML = `<div class="empty-state"><h3>❌ Could not load roles</h3><p>${escapeHtml(error.message)}</p></div>`;
+        }
+    }
+
+    function openUserModal(user = null) {
+        if (!isAdmin()) return;
+        editingUserId = user ? user.id : null;
+        document.getElementById('userModalTitle').textContent = user ? `Edit User: ${user.username}` : 'Add User';
+        document.getElementById('userUsername').value = user ? user.username : '';
+        document.getElementById('userUsername').disabled = !!user;
+        document.getElementById('userEmail').value = user ? user.email : '';
+        document.getElementById('userFullName').value = user ? (user.fullName || '') : '';
+        document.getElementById('userRole').value = user ? user.role : 'staff';
+        document.getElementById('userPassword').value = '';
+        document.getElementById('userPassword').required = !user;
+        document.getElementById('userPasswordHint').textContent = user ? '(leave blank to keep current)' : '*';
+        document.getElementById('userActive').value = user && !user.isActive ? 'false' : 'true';
+        document.getElementById('userModal').classList.add('show');
+        document.getElementById('userModal').setAttribute('aria-hidden','false');
+    }
+
+    window.openUserEditor = function(id) {
+        const user = usersCache.find(u => u.id === id);
+        if (user) openUserModal(user);
+    };
+
+    window.deactivateUser = async function(id) {
+        if (!isAdmin()) return;
+        const user = usersCache.find(u => u.id === id);
+        if (!user) return;
+        const action = user.isActive ? 'deactivate' : 'activate';
+        if (!confirm(`Are you sure you want to ${action} ${user.username}?`)) return;
+        try {
+            await apiCall(`/users/${id}`, {method:'PUT', body:JSON.stringify({isActive: !user.isActive})});
+            showToast(`User ${action}d successfully.`, 'success');
+            await loadUsers();
+        } catch (error) { showToast(error.message, 'error'); }
+    };
+
+    async function saveUser() {
+        if (!isAdmin()) return;
+        const username = document.getElementById('userUsername').value.trim();
+        const email = document.getElementById('userEmail').value.trim().toLowerCase();
+        const fullName = document.getElementById('userFullName').value.trim();
+        const role = document.getElementById('userRole').value;
+        const password = document.getElementById('userPassword').value;
+        const isActive = document.getElementById('userActive').value === 'true';
+        if (!username || !email || !role || (!editingUserId && !password)) { showToast('Username, email, role and password are required for new users.', 'error'); return; }
+        if (!editingUserId && password.length < 8) { showToast('Password must be at least 8 characters.', 'error'); return; }
+        if (editingUserId && password && password.length < 8) { showToast('Password must be at least 8 characters.', 'error'); return; }
+        try {
+            const payload = {email, fullName, role, isActive};
+            if (!editingUserId) { payload.username = username; payload.password = password; }
+            else if (password) payload.password = password;
+            const result = await apiCall(editingUserId ? `/users/${editingUserId}` : '/users', {method: editingUserId ? 'PUT' : 'POST', body: JSON.stringify(payload)});
+            if (result.success) {
+                closeUserModal();
+                showToast(editingUserId ? 'User updated successfully.' : 'User created successfully.', 'success');
+                await loadUsers();
+            }
+        } catch (error) { showToast(error.message, 'error'); }
+    }
+
+    function closeUserModal() {
+        document.getElementById('userModal').classList.remove('show');
+        document.getElementById('userModal').setAttribute('aria-hidden','true');
+        editingUserId = null;
+    }
+
+    // ============================================================
+    // LOAD DATA
+    // ============================================================
+    let loadRequestId = 0;
+
+    async function loadInventory(filter = 'all', search = '', sortOptions = currentSort) {
+        const thisRequestId = ++loadRequestId;
+        const tbody = document.getElementById('inventoryBody');
+        tbody.innerHTML = '<tr><td colspan="8"><div class="loading">⏳ Loading inventory...</div></td></tr>';
+
+        try {
+            const params = new URLSearchParams();
+            params.append('filter', filter);
+            params.append('search', search);
+            params.append('sort_by', sortOptions.by);
+            params.append('sort_order', sortOptions.order);
+
+            const result = await apiCall(`/products?${params.toString()}`, { skipAuth: true });
+            if (thisRequestId !== loadRequestId) return;
+
+            if (!result.success) throw new Error(result.error || 'Failed to load data');
+
+            const stats = result.stats;
+            document.getElementById('totalSkus').textContent = stats.totalSkus;
+            document.getElementById('totalUnits').textContent = stats.totalUnits;
+            document.getElementById('totalValue').textContent = stats.totalValue.toFixed(2);
+            document.getElementById('lowStockCount').textContent = stats.lowStockCount;
+
+            renderProducts(result.data);
+            updateSortArrows();
+            await checkServerStatus();
+        } catch (error) {
+            if (thisRequestId !== loadRequestId) return;
+            console.error('Load error:', error);
+            tbody.innerHTML = `
+                <tr><td colspan="8">
+                    <div class="empty-state">
+                        <h3>❌ Failed to load inventory</h3>
+                        <p>${escapeHtml(error.message)}</p>
+                        <p style="margin-top:10px;font-size:12px;color:#94a3b8;">
+                            Make sure the server is running: python app.py
+                        </p>
+                    </div>
+                </td></tr>`;
+            showToast('Failed to load inventory: ' + error.message, 'error');
+        }
+    }
+
+    function renderProducts(products) {
+        const tbody = document.getElementById('inventoryBody');
+        const loggedIn = isLoggedIn();
+
+        if (!products || products.length === 0) {
+            tbody.innerHTML = `
+                <tr><td colspan="8">
+                    <div class="empty-state">
+                        <h3>📭 No products found</h3>
+                        <p>Add your first product using the form above.</p>
+                    </div>
+                </td></tr>`;
+            return;
+        }
+
+        let html = '';
+        products.forEach(p => {
+            const statusBadge = getStatusBadge(p.status);
+            let actions;
+            if (!loggedIn) {
+                actions = '<button class="btn btn-sm" type="button" onclick="openLoginModal({ mode: \'login\', intent: \'edit\' })">Sign in to manage</button>';
+            } else {
+                const btns = [];
+                if (can('stock:adjust')) {
+                    btns.push(`<button class="btn btn-success btn-sm" onclick="adjustStock('${p.id}', 1)">+ Receive</button>`);
+                    btns.push(`<button class="btn btn-warning btn-sm" onclick="adjustStock('${p.id}', -1)">- Sell</button>`);
+                }
+                if (can('products:update')) {
+                    btns.push(`<button class="btn btn-sm" onclick="openEditModal('${p.id}')" style="background:#3b82f6;">✏️ Edit</button>`);
+                }
+                if (can('products:delete')) {
+                    btns.push(`<button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">🗑️</button>`);
+                }
+                actions = btns.length
+                    ? `<div class="action-btns">${btns.join('')}</div>`
+                    : '<span style="color:#94a3b8;font-size:12px;">No actions</span>';
+            }
+
+            html += `
+                <tr>
+                    <td><strong>${escapeHtml(p.sku)}</strong></td>
+                    <td>${escapeHtml(p.name)}</td>
+                    <td>${escapeHtml(p.category)}</td>
+                    <td>${Number(p.price).toFixed(2)}</td>
+                    <td><strong>${p.quantity}</strong> ${escapeHtml(p.unit)}</td>
+                    <td>${p.reorderPoint}</td>
+                    <td>${statusBadge}</td>
+                    <td>${actions}</td>
+                </tr>`;
+        });
+        tbody.innerHTML = html;
+    }
+
+    function getStatusBadge(status) {
+        if (status === 'out' || status === 'low') {
+            return `<span class="badge badge-low">${status === 'out' ? '⚠️ Out of Stock' : '🔻 Low Stock'}</span>`;
+        }
+        return '<span class="badge badge-ok">✅ In Stock</span>';
+    }
+
+    function updateSortArrows() {
+        document.querySelectorAll('th[data-sort]').forEach(th => {
+            const arrow = th.querySelector('.sort-arrow');
+            if (th.dataset.sort === currentSort.by) {
+                arrow.textContent = currentSort.order === 'asc' ? '▲' : '▼';
+                arrow.style.opacity = '1';
+            } else {
+                arrow.textContent = '';
+                arrow.style.opacity = '0.3';
+            }
+        });
+    }
+
+    // ============================================================
+    // CRUD (all require JWT via apiCall)
+    // ============================================================
+    async function addProduct() {
+        if (!requirePermission('products:create', 'create')) return;
+
+        const sku = document.getElementById('sku').value.trim();
+        const name = document.getElementById('name').value.trim();
+        const category = document.getElementById('category').value.trim() || 'Uncategorized';
+        const price = parseFloat(document.getElementById('price').value);
+        const quantity = parseInt(document.getElementById('initialQty').value);
+        const unit = document.getElementById('unit').value;
+        const reorderPoint = parseInt(document.getElementById('reorderPoint').value);
+
+        if (!sku) { showToast('SKU is required!', 'error'); return; }
+        if (!name) { showToast('Product name is required!', 'error'); return; }
+        if (isNaN(price) || price < 0) { showToast('Enter a valid price.', 'error'); return; }
+        if (isNaN(quantity) || quantity < 0) { showToast('Enter a valid quantity.', 'error'); return; }
+        if (isNaN(reorderPoint) || reorderPoint < 0) { showToast('Enter a valid reorder point.', 'error'); return; }
+
+        try {
+            const result = await apiCall('/products', {
+                method: 'POST',
+                body: JSON.stringify({ sku, name, category, price, quantity, unit, reorderPoint, imageData: window.pendingProductImageData || null })
+            });
+            if (result.success) {
+                showToast(`✅ "${name}" added successfully!`, 'success');
+                clearAddForm();
+                resetViewFilters();
+                await loadInventoryWithCurrentFilters();
+            }
+        } catch (error) {
+            showToast('Failed to add product: ' + error.message, 'error');
+        }
+    }
+
+    window.openEditModal = async function(productId) {
+        if (!requirePermission('products:update', 'edit')) return;
+        try {
+            const result = await apiCall(`/products/${productId}`, { skipAuth: true });
+            if (result.success) {
+                const p = result.data;
+                document.getElementById('editProductId').value = p.id;
+                document.getElementById('editSku').value = p.sku;
+                document.getElementById('editName').value = p.name;
+                document.getElementById('editCategory').value = p.category;
+                document.getElementById('editPrice').value = p.price;
+                document.getElementById('editUnit').value = p.unit;
+                document.getElementById('editReorderPoint').value = p.reorderPoint;
+                document.getElementById('editModal').classList.add('show');
+            }
+        } catch (error) {
+            showToast('Failed to fetch product: ' + error.message, 'error');
+        }
+    };
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.remove('show');
+    }
+
+    async function saveChanges() {
+        if (!requirePermission('products:update', 'edit')) return;
+        const productId = document.getElementById('editProductId').value;
+        const sku = document.getElementById('editSku').value.trim();
+        const name = document.getElementById('editName').value.trim();
+        const category = document.getElementById('editCategory').value.trim();
+        const price = parseFloat(document.getElementById('editPrice').value);
+        const unit = document.getElementById('editUnit').value;
+        const reorderPoint = parseInt(document.getElementById('editReorderPoint').value);
+
+        if (!sku || !name || isNaN(price) || isNaN(reorderPoint)) {
+            showToast('Please fill all required fields with valid values.', 'error');
+            return;
+        }
+
+        try {
+            const result = await apiCall(`/products/${productId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ sku, name, category, price, unit, reorderPoint })
+            });
+            if (result.success) {
+                showToast(`✅ "${name}" updated successfully!`, 'success');
+                closeEditModal();
+                await loadInventoryWithCurrentFilters();
+            }
+        } catch (error) {
+            showToast('Failed to save changes: ' + error.message, 'error');
+        }
+    }
+
+    window.adjustStock = async function(productId, delta) {
+        if (!requirePermission('stock:adjust', 'stock')) return;
+        try {
+            const result = await apiCall(`/products/${productId}/stock`, {
+                method: 'PUT',
+                body: JSON.stringify({ delta })
+            });
+            if (result.success) {
+                const action = delta > 0 ? 'received' : 'sold';
+                showToast(`🔄 Stock updated (${delta > 0 ? '+' : ''}${delta} ${action})`, 'success');
+                await loadInventoryWithCurrentFilters();
+            }
+        } catch (error) {
+            showToast('Failed to update stock: ' + error.message, 'error');
+        }
+    };
+
+    window.deleteProduct = async function(productId) {
+        if (!requirePermission('products:delete', 'delete')) return;
+        if (!confirm('Delete this product permanently?')) return;
+        try {
+            const result = await apiCall(`/products/${productId}`, { method: 'DELETE' });
+            if (result.success) {
+                showToast(result.message, 'success');
+                await loadInventoryWithCurrentFilters();
+            }
+        } catch (error) {
+            showToast('Failed to delete: ' + error.message, 'error');
+        }
+    };
+
+    async function clearAllData() {
+        if (!requirePermission('products:delete', 'clear')) return;
+        if (!(currentUser && currentUser.role === 'admin')) {
+            showToast('Only admins can clear all data.', 'error');
+            return;
+        }
+        if (!confirm('⚠️ This will delete ALL inventory data. Are you sure?')) return;
+        if (!confirm('Final confirmation: This cannot be undone!')) return;
+
+        try {
+            const result = await apiCall('/products?filter=all', { skipAuth: true });
+            if (result.success && result.data) {
+                for (const product of result.data) {
+                    await apiCall(`/products/${product.id}`, { method: 'DELETE' });
+                }
+                showToast('All data cleared successfully.', 'success');
+                await loadInventoryWithCurrentFilters();
+            }
+        } catch (error) {
+            showToast('Failed to clear data: ' + error.message, 'error');
+        }
+    }
+
+    function resetViewFilters() {
+        document.getElementById('filterStatus').value = 'all';
+        document.getElementById('searchInput').value = '';
+    }
+
+    function loadInventoryWithCurrentFilters() {
+        const filter = document.getElementById('filterStatus').value;
+        const search = document.getElementById('searchInput').value;
+        return loadInventory(filter, search, currentSort);
+    }
+
+    function clearAddForm() {
+        document.getElementById('sku').value = '';
+        document.getElementById('name').value = '';
+        document.getElementById('category').value = '';
+        document.getElementById('price').value = '';
+        document.getElementById('initialQty').value = '';
+        document.getElementById('unit').value = 'pcs';
+        document.getElementById('reorderPoint').value = '';
+        clearProductPhoto();
+        document.getElementById('sku').focus();
+    }
+
+    // ============================================================
+    // TOAST
+    // ============================================================
+    let toastTimer;
+    function showToast(message, type = 'success') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = 'toast ' + type;
+        clearTimeout(toastTimer);
+        void toast.offsetWidth;
+        toast.classList.add('show');
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // ============================================================
+    // EVENT BINDING
+    // ============================================================
+    function bindEvents() {
+        document.querySelectorAll('.nav-btn[data-page]').forEach(btn => {
+            btn.addEventListener('click', () => setPage(btn.dataset.page));
+        });
+        document.getElementById('addUserBtn').addEventListener('click', () => openUserModal());
+        document.getElementById('saveUserBtn').addEventListener('click', saveUser);
+        document.getElementById('cancelUserBtn').addEventListener('click', closeUserModal);
+        document.getElementById('closeUserModalBtn').addEventListener('click', closeUserModal);
+        document.getElementById('refreshUsersBtn').addEventListener('click', loadUsers);
+        document.getElementById('refreshDailySalesBtn').addEventListener('click', () => loadDailySalesReport(document.getElementById('dailySalesDatePicker').value || todayIso(), 'dashboard'));
+        document.getElementById('dailySalesDatePicker').addEventListener('change', () => loadDailySalesReport(document.getElementById('dailySalesDatePicker').value || todayIso(), 'dashboard'));
+        document.getElementById('loadSalesReportBtn').addEventListener('click', () => loadDailySalesReport(document.getElementById('reportDatePicker').value || todayIso(), 'report'));
+        document.getElementById('downloadDailySalesBtn').addEventListener('click', () => downloadSalesCsv(document.getElementById('dailySalesDatePicker').value || todayIso()));
+        document.getElementById('printDailySalesBtn').addEventListener('click', () => printSalesReport(lastDashboardReport, 'Daily Sales Report'));
+        document.getElementById('downloadSalesReportBtn').addEventListener('click', () => downloadSalesCsv(document.getElementById('reportDatePicker').value || todayIso()));
+        document.getElementById('printSalesReportBtn').addEventListener('click', () => printSalesReport(lastPageReport, 'Daily Sales Report'));
+        document.getElementById('profileBtn')?.addEventListener('click', openProfileModal);
+        document.getElementById('closeProfileModalBtn').addEventListener('click', closeProfileModal);
+        document.getElementById('cancelProfileBtn').addEventListener('click', closeProfileModal);
+        document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
+        document.getElementById('profileModal').addEventListener('click', event => { if (event.target === event.currentTarget) closeProfileModal(); });
+        document.getElementById('userSearchInput').addEventListener('input', renderUsers);
+        document.getElementById('userRoleFilter').addEventListener('change', renderUsers);
+        document.getElementById('userModal').addEventListener('click', event => { if (event.target === event.currentTarget) closeUserModal(); });
+        document.getElementById('addBtn').addEventListener('click', addProduct);
+        document.getElementById('scanItemBtn').addEventListener('click', openCameraModal);
+        document.getElementById('takePhotoBtn').addEventListener('click', () => document.getElementById('productPhotoInput').click());
+        document.getElementById('productPhotoInput').addEventListener('change', e => setProductPhoto(e.target.files?.[0]));
+        document.getElementById('closeCameraModalBtn').addEventListener('click', closeCameraModal);
+        document.getElementById('stopCameraBtn').addEventListener('click', closeCameraModal);
+        document.getElementById('capturePhotoBtn').addEventListener('click', captureCameraPhoto);
+        document.getElementById('cameraModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeCameraModal(); });
+        document.querySelectorAll('#addForm input').forEach(input => {
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); addProduct(); }
+            });
+        });
+
+        document.getElementById('cancelEditBtn').addEventListener('click', closeEditModal);
+        document.getElementById('saveChangesBtn').addEventListener('click', saveChanges);
+
+        document.getElementById('loginForm').addEventListener('submit', submitLogin);
+        document.getElementById('registerForm').addEventListener('submit', submitRegistration);
+        document.getElementById('cancelAuthBtn').addEventListener('click', closeLoginModal);
+        document.querySelectorAll('[data-auth-cancel]').forEach(button => {
+            button.addEventListener('click', closeLoginModal);
+        });
+        document.getElementById('closeAuthBtn').addEventListener('click', closeLoginModal);
+        document.getElementById('loginModeBtn').addEventListener('click', () => setAuthMode('login'));
+        document.getElementById('registerModeBtn').addEventListener('click', () => setAuthMode('register'));
+        document.getElementById('loginPromptBtn').addEventListener('click', () => openLoginModal({ mode: 'login' }));
+        document.getElementById('registerPromptBtn').addEventListener('click', () => openLoginModal({ mode: 'register' }));
+        document.getElementById('loginModal').addEventListener('click', (event) => {
+            if (event.target === event.currentTarget) closeLoginModal();
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && document.getElementById('loginModal').classList.contains('show')) {
+                closeLoginModal();
+            }
+        });
+
+        document.querySelectorAll('th[data-sort]').forEach(th => {
+            th.addEventListener('click', () => {
+                const sortBy = th.dataset.sort;
+                if (currentSort.by === sortBy) {
+                    currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSort.by = sortBy;
+                    currentSort.order = 'asc';
+                }
+                loadInventoryWithCurrentFilters();
+            });
+        });
+    }
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    async function init() {
+        loadStoredUser();
+        updateAuthUI();
+        bindEvents();
+        resetViewFilters();
+        const today = todayIso();
+        if (document.getElementById('dailySalesDatePicker')) document.getElementById('dailySalesDatePicker').value = today;
+        if (document.getElementById('reportDatePicker')) document.getElementById('reportDatePicker').value = today;
+        await checkServerStatus();
+
+        // Validate stored token and load permissions
+        if (isLoggedIn()) {
+            try {
+                const me = await apiCall('/auth/me');
+                if (me.success) {
+                    currentUser = me.data;
+                    localStorage.setItem(USER_KEY, JSON.stringify(me.data));
+                    await loadPermissions();
+                    updateAuthUI();
+                }
+            } catch {
+                clearAuth();
+            }
+        }
+
+        await loadInventoryWithCurrentFilters();
+        updateNavigation();
+        if (isLoggedIn()) await loadDashboardSummary();
+
+        document.getElementById('searchInput').addEventListener('input', debounce(loadInventoryWithCurrentFilters, 300));
+        document.getElementById('filterStatus').addEventListener('change', loadInventoryWithCurrentFilters);
+        document.getElementById('clearAllBtn').addEventListener('click', clearAllData);
+        document.getElementById('refreshBtn').addEventListener('click', loadInventoryWithCurrentFilters);
+    }
+
+    init();
+
+    console.log('📦 Inventory System with JWT auth loaded');
+    console.log('🔌 API:', API_BASE);
+</script>
+
+    <div class="modal camera-modal" id="cameraModal" role="dialog" aria-modal="true" aria-labelledby="cameraModalTitle">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="cameraModalTitle">📷 Scan / Capture Item</h2><button class="modal-close" id="closeCameraModalBtn" type="button" aria-label="Close">×</button></div>
+            <div class="camera-stage"><video id="cameraVideo" autoplay playsinline muted></video><canvas id="cameraCanvas"></canvas></div>
+            <div class="camera-help" id="cameraHelp">Allow camera access. For barcode scanning, point the barcode inside the camera view. If barcode scanning is unavailable, use the Take Photo button.</div>
+            <div class="modal-actions" style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;"><button class="btn btn-sm" id="capturePhotoBtn">📸 Capture Photo</button><button class="btn btn-sm" id="stopCameraBtn" style="background:#64748b;">Stop Camera</button></div>
+        </div>
+    </div>
+</body>
+</html>
